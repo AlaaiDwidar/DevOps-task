@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nexus
+  namespace: build
+spec:
+  type: NodePort
+  ports:
+    - port: 8081
+      targetPort: 8081
+      nodePort: 30001
+      name: svc1
+    - port: 8082
+      targetPort: 8082
+      nodePort: 30002
+      name: svc2
+
+  selector:
+    app: nexus
