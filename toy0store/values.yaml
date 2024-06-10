@@ -1,0 +1,15 @@
+# values.yaml
+
+image:
+  repository: 192.168.49.2:30002/orange/my-spring-boot-app
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  name: toy0store
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: toy0store
+description: A Helm chart for deploying the Toy0Store Spring Boot application
+version: 0.1.0
+
