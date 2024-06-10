@@ -1,0 +1,58 @@
+stages:
+  - checkout
+  - build
+  - build_image
+  - upload
+
+variables:
+  MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version"
+  DOCKER_IMAGE_NAME: "my-spring-boot-app"
+  NEXUS_REPOSITORY: "orange"  
+  NEXUS_URL: "192.168.49.2:30002" 
+  NEXUS_USERNAME: "admin"  
+  NEXUS_PASSWORD: "admin"  
+
+checkout_code:
+  stage: checkout
+  image: git:latest
+  script:
+    - git clone https://github.com/ahmedmisbah-ole/Devops-Orange.git
+    #- ls & pwd
+    #- cd /Devops-Orange/Toy0Store
+    - ls
+    - cp -r Devops-Orange/Toy0Store/* /tmp/
+
+build:
+  stage: build
+  image: openjdk:11-jdk
+  script:
+    # Check Maven version
+    
+    - cd /tmp 
+    - mvn -v
+    - ls
+    - mvn $MAVEN_CLI_OPTS clean package
+
+build_image:
+  stage: build_image
+  # image: docker:latest
+  # services:
+  #   - docker:dind
+  script:
+    - cd /tmp
+    - docker build -t $DOCKER_IMAGE_NAME:latest .
+
+
+upload:
+  stage: upload
+  image: curlimages/curl:latest
+  
+ 
+  script:
+    - echo "Logging in to Nexus"
+    - echo $NEXUS_PASSWORD | docker login $NEXUS_URL --username $NEXUS_USERNAME --password-stdin 
+    - echo "Tagging Docker image"
+    - docker tag $DOCKER_IMAGE_NAME:latest $NEXUS_URL/$NEXUS_REPOSITORY/$DOCKER_IMAGE_NAME:latest 
+    - echo "Pushing Docker image to Nexus"
+    - docker push $NEXUS_URL/$NEXUS_REPOSITORY/$DOCKER_IMAGE_NAME:latest 
+
