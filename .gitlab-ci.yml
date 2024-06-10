@@ -1,58 +1,53 @@
 stages:
-  - checkout
-  - build
-  - build_image
-  - upload
+  - choose-environment
+  - deploy
 
 variables:
-  MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version"
-  DOCKER_IMAGE_NAME: "my-spring-boot-app"
-  NEXUS_REPOSITORY: "orange"  
-  NEXUS_URL: "192.168.49.2:30002" 
-  NEXUS_USERNAME: "admin"  
-  NEXUS_PASSWORD: "admin"  
+  IMAGE_REPOSITORY: 192.168.49.2:30002/orange/my-spring-boot-app
+  IMAGE_TAG: "latest"
 
-checkout_code:
-  stage: checkout
-  image: git:latest
+choose-environment:
+  stage: choose-environment
   script:
-    - git clone https://github.com/ahmedmisbah-ole/Devops-Orange.git
-    #- ls & pwd
-    #- cd /Devops-Orange/Toy0Store
-    - ls
-    - cp -r Devops-Orange/Toy0Store/* /tmp/
+    - echo "Please select the environment for deployment:"
+    - echo "1. Dev"
+    - echo "2. Test"
+  when: manual
+  allow_failure: false
 
-build:
-  stage: build
-  image: openjdk:11-jdk
+# Create separate jobs for Dev and Test, which will run based on the chosen environment.
+deploy:
+  stage: deploy
   script:
-    # Check Maven version
-    
-    - cd /tmp 
-    - mvn -v
-    - ls
-    - mvn $MAVEN_CLI_OPTS clean package
+    - echo "Deploying to the selected environment..."
+    - |
+      if [[ "$ENVIRONMENT" == "Dev" ]]; then
+        NAMESPACE="dev"
+      elif [[ "$ENVIRONMENT" == "Test" ]]; then
+        NAMESPACE="test"
+      else
+        echo "Invalid environment selection."
+        exit 1
+      fi
+    - echo "Using namespace: $NAMESPACE"
+    - helm upgrade --install spring-boot-app ./spring-boot-app --namespace $NAMESPACE --set image.repository=$IMAGE_REPOSITORY --set image.tag=$IMAGE_TAG
+  only:
+    - main
+  environment:
+    name: $ENVIRONMENT
+  when: on_success
 
-build_image:
-  stage: build_image
-  # image: docker:latest
-  # services:
-  #   - docker:dind
-  script:
-    - cd /tmp
-    - docker build -t $DOCKER_IMAGE_NAME:latest .
+before_script:
 
+  - docker login -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD" http://192.168.49.2:30002
+  # Check if Helm is installed
+  - helm version || curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
 
-upload:
-  stage: upload
-  image: curlimages/curl:latest
-  
- 
-  script:
-    - echo "Logging in to Nexus"
-    - echo $NEXUS_PASSWORD | docker login $NEXUS_URL --username $NEXUS_USERNAME --password-stdin 
-    - echo "Tagging Docker image"
-    - docker tag $DOCKER_IMAGE_NAME:latest $NEXUS_URL/$NEXUS_REPOSITORY/$DOCKER_IMAGE_NAME:latest 
-    - echo "Pushing Docker image to Nexus"
-    - docker push $NEXUS_URL/$NEXUS_REPOSITORY/$DOCKER_IMAGE_NAME:latest 
+variables:
+  ENVIRONMENT:
+    description: "Choose the environment for deployment: Dev or Test"
+    value: "Dev"  # Default value
+    options:
+      - Dev
+      - Test
 
