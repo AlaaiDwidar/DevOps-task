@@ -37,14 +37,9 @@ deploy:
   when: on_success
 
 before_script:
-  # Make sure Minikube is running
-  #- minikube status || minikube start
-  # Configure Docker to use Minikube's Docker daemon
-  #- eval $(minikube docker-env)
-  # Add the Nexus Docker registry
+
   - docker login -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD" http://192.168.49.2:30002
-  # Check if Helm is installed
-  #- helm version || curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+  
 
 variables:
   ENVIRONMENT:
